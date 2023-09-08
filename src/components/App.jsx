@@ -1,107 +1,79 @@
-import { Component } from 'react';
+import { useEffect, useState } from 'react';
 import { ContactForm } from './ContactForm/ContactForm';
 import { Filter } from './Filter/Filter';
 import { ContactList } from './ContactList/ContactList';
 import { GlobalStyle } from './GlobalStyle';
 
-const localStorageContactsKey = "contacts";
+const localStorageContactsKey = 'contacts';
 
-export class App extends Component {
-  state = {
-    contacts: [],
-    filter: '',
-  };
+export const App = () => {
+  const [contacts, setContacts] = useState('');
+  const [filter, setFilter] = useState('');
 
-  componentDidMount() {
+  //Get data from local storage
+  useEffect(() => {
     const savedContacts = localStorage.getItem(localStorageContactsKey);
-    if (savedContacts !== null) {
-      this.setState({
-        contacts: JSON.parse(savedContacts),
-      });
+    setContacts(JSON.parse(savedContacts) ?? []);
+  }, []);
+
+  //Set data to local storage
+  useEffect(() => {
+    if (!contacts) {
+      return;
     }
-  }
+    localStorage.setItem(localStorageContactsKey, JSON.stringify(contacts));
+  }, [contacts]);
 
-  componentDidUpdate(_, prevState) { 
-    const { contacts: prevContacts } = prevState;
-    const { contacts: nextContacts } = this.state;
-
-    if (prevContacts.length !== nextContacts.length) {
-      localStorage.setItem(
-        localStorageContactsKey,
-        JSON.stringify(nextContacts)
-      );
-    }
- } 
-
-  handleChangeFilter = newName => {
-    this.setState({ filter: newName });
-  };
-
-  getСontactByFilter = () => {
-    const { contacts, filter } = this.state;
-    return contacts.filter(contact =>
+  const getСontactByFilter = () =>
+    contacts.filter(contact =>
       contact.name.toLowerCase().includes(filter.toLowerCase())
     );
-  };
 
-  handleDelete = contactId => {
-    this.setState(prevState => {
-      return {
-        contacts: prevState.contacts.filter(
-          contact => contact.id !== contactId
-        ),
-      };
-    });
-  };
+  const isExist = (arr, newItem) =>
+    arr.find(item => item.name.toLowerCase() === newItem.name.toLowerCase());
 
-  handleAdd = newContact => {
-    const { contacts } = this.state;
-    const isExist = contacts.find(
-      contact => contact.name.toLowerCase() === newContact.name.toLowerCase()
-    );
-    if (isExist) {
+  const handleAdd = newContact => {
+    if (isExist(contacts, newContact)) {
       alert(`${newContact.name} is already in contacts.`);
       return;
     }
-    this.setState(prevSate => {
-      return {
-        contacts: [...prevSate.contacts, newContact],
-      };
-    });
+    return setContacts(prevSate => [...prevSate, newContact]);
   };
 
-  render() {
-    return (
-      <div
-        style={{
-          height: '100vh',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          fontSize: 20,
-          color: '#010101',
-          margin: 40,
-        }}
-      >
-        <div>
-          <h1>Phonebook</h1>
-          <ContactForm onAdd={this.handleAdd} />
-          {this.state.contacts.length > 0 && (
-            <>
-              <h2>Contacts</h2>
-              <Filter
-                value={this.state.filter}
-                onChangeFilter={this.handleChangeFilter}
-              />
-              <ContactList
-                contacts={this.getСontactByFilter()}
-                onDelete={this.handleDelete}
-              />
-            </>
-          )}
-          <GlobalStyle />
-        </div>
-      </div>
+  const handleDelete = contactId =>
+    setContacts(prevState =>
+      prevState.filter(contact => contact.id !== contactId)
     );
-  }
-}
+
+  const handleChangeFilter = newName => setFilter(newName);
+
+  return (
+    <div
+      style={{
+        height: '100vh',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        fontSize: 20,
+        color: '#010101',
+        margin: 40,
+      }}
+    >
+      <div>
+        <h1>Phonebook</h1>
+        <ContactForm onAdd={handleAdd} />
+        {contacts.length > 0 && (
+          <>
+            <h2>Contacts</h2>
+            <Filter value={filter} onChangeFilter={handleChangeFilter} />
+            <ContactList
+              contacts={getСontactByFilter()}
+              onDelete={handleDelete}
+            />
+          </>
+        )}
+        <GlobalStyle />
+      </div>
+    </div>
+  );
+};
